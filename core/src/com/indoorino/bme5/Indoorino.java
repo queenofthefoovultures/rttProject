@@ -43,7 +43,6 @@ public class Indoorino extends ApplicationAdapter {
 		private ModelInstance redBox;
 
 
-
 		@Override
 		public void create() {
 			stage = new Stage(new ScreenViewport());
