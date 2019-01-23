@@ -2,6 +2,7 @@ package com.indoorino.bme5;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -21,15 +22,15 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-
+import android.location.LocationManager;
 
 
 public class Indoorino extends ApplicationAdapter {
 
 		private Stage stage;
+		private LocationManager mng;
 
 		private Button button2;
-
 
 		private Environment lights;
 		private PerspectiveCamera cam;
@@ -38,21 +39,30 @@ public class Indoorino extends ApplicationAdapter {
 		private Model model;
 		private ModelInstance instance;
 
-
 		private Model model2;
 		private ModelInstance redBox;
 
 
+		// GPS Retrieval Instance
+		private AndroidApplication appl;
+
+		public Indoorino(AndroidApplication myapp){
+			appl = myapp;
+		}
+
 		@Override
 		public void create() {
-			stage = new Stage(new ScreenViewport());
 
+			appl.log("info222", "i have a context");
+
+
+
+			stage = new Stage(new ScreenViewport());
 
 			// Initiate Light
 			lights = new Environment();
 			lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 1f, 0.4f, 0.4f, 1f));
 			lights.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-
 
 
 			// Initiate Camera
@@ -82,7 +92,6 @@ public class Indoorino extends ApplicationAdapter {
 			double alt = 46.87;
 
 			CoordinateUtilities utl = new CoordinateUtilities();
-
 
 			// Neue Koordinaten um Zentrum links drüber versetzt.
 			// Erg: Koordinaten links oben sind: x: -7.468874241294032, y: 7.006816722382261, z: -8.217153399048271E-6
@@ -125,7 +134,6 @@ public class Indoorino extends ApplicationAdapter {
 				@Override
 				public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
 					Gdx.app.log("Button	", " has been pressed");
-
 				}
 
 				@Override
