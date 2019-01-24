@@ -34,19 +34,19 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.IOException;
 
 import static android.content.Context.LOCATION_SERVICE;
 
 
-// alternative: public class extends Activity implements ApplicationListener
-public class Indoorino extends ApplicationAdapter {
+// alternative: public class extends ApplicationAdapter
+public class Indoorino extends Activity implements ApplicationListener {
 
 
 	public LocationManager locationManager;
 	public LocationListener locationListener;
-	//public GPSTracker gpstr;
 
 	double locationLat = 0d;
 	double locationLon = 0d;
@@ -73,18 +73,22 @@ public class Indoorino extends ApplicationAdapter {
 		appl = myapp;
 	}
 
+
+
 	@Override
 	public void create() {
 
 
 
-			locationManager = (LocationManager) appl.getSystemService(LOCATION_SERVICE);
+			locationManager = (LocationManager) appl.getContext().getSystemService(LOCATION_SERVICE);
 			locationListener = new LocationListener() {
 			@Override
 			public void onLocationChanged(Location location) {
 				locationLon = location.getLongitude();
 				locationLat = location.getLatitude();
-				Log.d("ocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
+				Log.d("GPSLocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
+				float[] values = instance.transform.getValues();
+				instance.transform.translate(values[0]+1,values[1]+1, values[2]+1);
 			}
 
 			@Override
@@ -102,25 +106,33 @@ public class Indoorino extends ApplicationAdapter {
 
 			}
 		};
-			if (appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-				// TODO: Consider calling
-				//    Activity#requestPermissions
-				// here to request the missing permissions, and then overriding
-				//   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-				//                                          int[] grantResults)
-				// to handle the case where the user grants the permission. See the documentation
-				// for Activity#requestPermissions for more details.
-				ActivityCompat.requestPermissions(appl, new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, 10);
-				return;
-			}
-			// This line he doesn't like
-		try {
-			locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, locationListener);
-		} catch (Exception e){
-			Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
-		}
 
-			appl.log("info222", "i have a context: " + appl.getContext());
+		appl.runOnUiThread(new Runnable() {
+			public void run() {
+				Toast.makeText(appl, "hey", Toast.LENGTH_SHORT).show();
+				// appl.getContext().
+				if (appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+					// TODO: Consider calling
+					//    Activity#requestPermissions
+					// here to request the missing permissions, and then overriding
+					//   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+					//                                          int[] grantResults)
+					// to handle the case where the user grants the permission. See the documentation
+					// for Activity#requestPermissions for more details.
+					//ActivityCompat.requestPermissions(this, new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, 10);
+					return;
+				}
+				try {
+					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, locationListener);
+				} catch (Exception e){
+					Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
+				}
+			}
+		});
+
+
+
+
 
 
 
@@ -200,7 +212,7 @@ public class Indoorino extends ApplicationAdapter {
 			button2.addListener(new InputListener(){
 				@Override
 				public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
-					Gdx.app.log("Button	", " has been pressed");
+
 
 				}
 
@@ -208,7 +220,10 @@ public class Indoorino extends ApplicationAdapter {
 				public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
 					Gdx.app.log("Button	", " has been pressed");
 					instance.transform.rotate(1,2,3,3);
-					redBox.transform.rotate(1,-2,3,-33);
+					Gdx.app.log("GPS:", "Lat: " + locationLat + " Lon: " + locationLon);
+
+
+
 					return true;
 				}
 			});
