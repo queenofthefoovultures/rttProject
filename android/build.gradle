@@ -18,7 +18,7 @@ android {
     }
     defaultConfig {
         applicationId "com.indoorino.bme5"
-        minSdkVersion 9
+        minSdkVersion 25
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -137,4 +137,5 @@ idea {
     }
 }
 dependencies {
+    implementation 'com.android.support:appcompat-v7:+'
 }

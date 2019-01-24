@@ -1,6 +1,7 @@
 package com.indoorino.bme5;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.graphics.Color;
@@ -22,38 +23,104 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+
+import android.Manifest;
+import android.app.Activity;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.util.Log;
+
+import java.io.IOException;
+
+import static android.content.Context.LOCATION_SERVICE;
 
 
+// alternative: public class extends Activity implements ApplicationListener
 public class Indoorino extends ApplicationAdapter {
 
-		private Stage stage;
-		private LocationManager mng;
 
-		private Button button2;
+	public LocationManager locationManager;
+	public LocationListener locationListener;
+	//public GPSTracker gpstr;
 
-		private Environment lights;
-		private PerspectiveCamera cam;
+	double locationLat = 0d;
+	double locationLon = 0d;
 
-		private ModelBatch modelBatch;
-		private Model model;
-		private ModelInstance instance;
+	private Stage stage;
 
-		private Model model2;
-		private ModelInstance redBox;
+	private Button button2;
+
+	private Environment lights;
+	private PerspectiveCamera cam;
+
+	private ModelBatch modelBatch;
+	private Model model;
+	private ModelInstance instance;
+
+	private Model model2;
+	private ModelInstance redBox;
 
 
-		// GPS Retrieval Instance
-		private AndroidApplication appl;
+	// GPS Retrieval Instance
+	private AndroidApplication appl;
 
-		public Indoorino(AndroidApplication myapp){
-			appl = myapp;
+	public Indoorino(AndroidApplication myapp) {
+		appl = myapp;
+	}
+
+	@Override
+	public void create() {
+
+
+
+			locationManager = (LocationManager) appl.getSystemService(LOCATION_SERVICE);
+			locationListener = new LocationListener() {
+			@Override
+			public void onLocationChanged(Location location) {
+				locationLon = location.getLongitude();
+				locationLat = location.getLatitude();
+				Log.d("ocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
+			}
+
+			@Override
+			public void onStatusChanged(String provider, int status, Bundle extras) {
+
+			}
+
+			@Override
+			public void onProviderEnabled(String provider) {
+
+			}
+
+			@Override
+			public void onProviderDisabled(String provider) {
+
+			}
+		};
+			if (appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+				// TODO: Consider calling
+				//    Activity#requestPermissions
+				// here to request the missing permissions, and then overriding
+				//   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+				//                                          int[] grantResults)
+				// to handle the case where the user grants the permission. See the documentation
+				// for Activity#requestPermissions for more details.
+				ActivityCompat.requestPermissions(appl, new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, 10);
+				return;
+			}
+			// This line he doesn't like
+		try {
+			locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, locationListener);
+		} catch (Exception e){
+			Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
 		}
 
-		@Override
-		public void create() {
-
-			appl.log("info222", "i have a context");
+			appl.log("info222", "i have a context: " + appl.getContext());
 
 
 
@@ -134,6 +201,7 @@ public class Indoorino extends ApplicationAdapter {
 				@Override
 				public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
 					Gdx.app.log("Button	", " has been pressed");
+
 				}
 
 				@Override
