@@ -65,20 +65,23 @@ public class Indoorino extends Activity implements ApplicationListener {
 	private Model model2;
 	private ModelInstance redBox;
 
+	private Model model3;
+	private ModelInstance yellowBox;
+
 
 	// GPS Retrieval Instance
 	private AndroidApplication appl;
+	private CoordinateUtilities utl;
+
 
 	public Indoorino(AndroidApplication myapp) {
 		appl = myapp;
 	}
 
-
-
 	@Override
 	public void create() {
 
-
+			utl = new CoordinateUtilities();
 
 			locationManager = (LocationManager) appl.getContext().getSystemService(LOCATION_SERVICE);
 			locationListener = new LocationListener() {
@@ -87,8 +90,11 @@ public class Indoorino extends Activity implements ApplicationListener {
 				locationLon = location.getLongitude();
 				locationLat = location.getLatitude();
 				Log.d("GPSLocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
-				float[] values = instance.transform.getValues();
-				instance.transform.translate(values[0]+1,values[1]+1, values[2]+1);
+
+				double[] enu4 = utl.geo2enu(locationLat,locationLon, 46.87);
+				Log.d("GPSLocationDoubl", "Folgende ENU Werte: Lat: " + enu4[0] + " Lon: " + enu4[1] + " Alt: " +  enu4[2]);
+				Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
+				instance.transform.translate((float)enu4[0],(float)enu4[2], (float)enu4[1]);
 			}
 
 			@Override
@@ -123,16 +129,12 @@ public class Indoorino extends Activity implements ApplicationListener {
 					return;
 				}
 				try {
-					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, locationListener);
+					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
 				} catch (Exception e){
 					Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
 				}
 			}
 		});
-
-
-
-
 
 
 
@@ -146,7 +148,7 @@ public class Indoorino extends Activity implements ApplicationListener {
 
 			// Initiate Camera
 			cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-			cam.position.set(10f, 10f, 10f);
+			cam.position.set(0f, 200f, 0f);
 			cam.lookAt(0,0,0);
 			cam.near = 1f;
 			cam.far = 300f;
@@ -155,22 +157,27 @@ public class Indoorino extends Activity implements ApplicationListener {
 			// Initiate 3D Model Handler Batch
 			modelBatch = new ModelBatch();
 			ModelBuilder modelBuilder = new ModelBuilder();
-			model = modelBuilder.createBox(5f, 5f, 5f,
-					new Material(ColorAttribute.createDiffuse(Color.GREEN)),
+
+			model = modelBuilder.createBox(5f, 5f, 5f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
 					VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 			instance = new ModelInstance(model, 2,2, 2);
 			instance.transform.translate(1,-2, 1);
 
+
+
 			model2 = modelBuilder.createBox(10f, 3f, 6f, new Material(ColorAttribute.createDiffuse(Color.RED)),
 					VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 			redBox = new ModelInstance(model2);
+
+			model3 = modelBuilder.createBox(1f, 1f, 1f, new Material(ColorAttribute.createDiffuse(Color.YELLOW)),
+					VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+			yellowBox = new ModelInstance(model3, 20, 10,0);
 
 			//Nürnberg ZENTRUM vor TH BB Gebäude
 			double lat = 49.448256;
 			double lon = 11.095962;
 			double alt = 46.87;
 
-			CoordinateUtilities utl = new CoordinateUtilities();
 
 			// Neue Koordinaten um Zentrum links drüber versetzt.
 			// Erg: Koordinaten links oben sind: x: -7.468874241294032, y: 7.006816722382261, z: -8.217153399048271E-6
@@ -240,6 +247,7 @@ public class Indoorino extends Activity implements ApplicationListener {
 			modelBatch.begin(cam);
 			modelBatch.render(instance, lights);
 			modelBatch.render(redBox, lights);
+			modelBatch.render(yellowBox, lights);
 			modelBatch.end();
 
 			stage.act();

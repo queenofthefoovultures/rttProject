@@ -75,5 +75,4 @@ public class CoordinateUtilities {
         ecef[2] = ( n*(1 - e_sq ) + alt )*Math.sin( lat );          //ECEF z
         return(ecef);     //Return x, y, z in ECEF
     }
-
 }
