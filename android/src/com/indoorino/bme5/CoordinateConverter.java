@@ -1,5 +1,8 @@
 package com.indoorino.bme5;
 
+import android.opengl.Matrix;
+import android.util.Log;
+
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
@@ -17,22 +20,23 @@ public class CoordinateConverter {
     // Constructor gets float-array of GPS Basis Coordinate
     CoordinateConverter(float[] gpsBasePoint){
         gpsBaseCoordinate = new Vector3(gpsBasePoint[0], gpsBasePoint[1], gpsBasePoint[2]);
-        ecefBaseCoordinate = new Vector3(gps2ecef(gpsBaseCoordinate));
-        createConverterMatrix(ecefBaseCoordinate);
+        ecefBaseCoordinate = this.gps2ecef(gpsBaseCoordinate);
+        this.createConverterMatrix(ecefBaseCoordinate);
     }
-
+    // Sets up new BasePoint as it creates new converterMatrix and updates the baseCoordinates
     public void setNewBasePoint(float[] gps){
         gpsBaseCoordinate = new Vector3(gps[0], gps[1], gps[2]);
-        ecefBaseCoordinate = new Vector3(gps2ecef(gpsBaseCoordinate));
+        ecefBaseCoordinate = gps2ecef(gpsBaseCoordinate);
         createConverterMatrix(ecefBaseCoordinate);
     }
 
     // Input = GPS float Array //  0 = Latitude, 1 = Longitude, 2 = Altitude
-    public Vector3 gps2LocalEnu(float[] gps){
+    public float[] gps2LocalEnu(float[] gps){
         Vector3 gpsInput =  new Vector3(gps[0], gps[1], gps[2]);
-        Vector3 ecef = new Vector3(gps2ecef(gpsInput));
-        Vector3 enu = new Vector3(ecef2LocalEnu(ecef));
-        return enu;
+        Vector3 ecef = gps2ecef(gpsInput);
+        Vector3 enu = ecef2LocalEnu(ecef);
+        float[] returnEnu = {enu.x, enu.y, enu.z};
+        return returnEnu;
     }
 
     // tmp.x = lat; tmp.y = lon; tmp.z = alt
@@ -48,22 +52,30 @@ public class CoordinateConverter {
     }
 
     public Vector3 ecef2LocalEnu(Vector3 ecef){
-
         ecef.mul(converterMatrix);
+        Log.i("ENU", "-----------------------------------");
         return (ecef);
     }
 
     // Ausgangspunkt ECEF Koordinaten des Ursprungs = tmp
     private void createConverterMatrix(Vector3 ecefCoordinates){
+        Vector3 ecefCpy = ecefCoordinates.cpy();
+        Log.i("ENUMATRIX","ECEFCoordinates x: " + ecefCoordinates.x + ", y: " + ecefCoordinates.y + ", z: " + ecefCoordinates.z);
+
         Vector3 z = new Vector3(ecefCoordinates.nor());
         Vector3 x = new Vector3(0,0,1).crs(z).nor();
         Vector3 xcpy = x.cpy();
-        Vector3 y = new Vector3(xcpy.crs(z)).nor();
-        float[] matrixArray4x4 =  { x.x,x.y,x.z,-ecefCoordinates.x,
-                                    y.x,y.y,y.z,-ecefCoordinates.y,
-                                    z.x,z.y,z.z,-ecefCoordinates.z,
-                                    0,  0,  0,  1       };
+        Vector3 y = xcpy.crs(z).nor();
 
+        float[] matrixArray4x4 =  { x.x,          y.x,            z.x,            0,
+                                    x.y,          y.y,            z.y,            0,
+                                    x.z,          y.z,            z.z,            0,
+                                    -ecefCpy.x,   -ecefCpy.y  ,  -ecefCpy.z ,     1  };
+
+
+        //Log.i("ENUMATRIX","ECEFCpy x: " + -ecefCpy.x + ", y: " + -ecefCpy.y + ", z: " + -ecefCpy.z);
         converterMatrix = new Matrix4(matrixArray4x4);
+
+
     }
 }

@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -72,6 +73,7 @@ public class Indoorino extends Activity implements ApplicationListener {
 	// GPS Retrieval Instance
 	private AndroidApplication appl;
 	private CoordinateUtilities utl;
+	private CoordinateConverter conv;
 
 
 	public Indoorino(AndroidApplication myapp) {
@@ -129,7 +131,7 @@ public class Indoorino extends Activity implements ApplicationListener {
 					return;
 				}
 				try {
-					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+					//locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
 				} catch (Exception e){
 					Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
 				}
@@ -173,11 +175,23 @@ public class Indoorino extends Activity implements ApplicationListener {
 					VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 			yellowBox = new ModelInstance(model3, 20, 10,0);
 
+
+
+
+
+
+
+
+
+
 			//Nürnberg ZENTRUM vor TH BB Gebäude
 			double lat = 49.448256;
 			double lon = 11.095962;
 			double alt = 46.87;
+			float[] centerPoint = {(float)lat,(float)lon, (float) alt};
 
+			utl = new CoordinateUtilities();
+			conv = new CoordinateConverter(centerPoint);
 
 			// Neue Koordinaten um Zentrum links drüber versetzt.
 			// Erg: Koordinaten links oben sind: x: -7.468874241294032, y: 7.006816722382261, z: -8.217153399048271E-6
@@ -187,31 +201,32 @@ public class Indoorino extends Activity implements ApplicationListener {
 			double[] ecef = utl.geo_to_ecef(latp, lonp, altp);
 			double[] enu = utl.ecef2enu(ecef[0], ecef[1], ecef[2], lat, lon, alt);
 			Gdx.app.log("ENU1", "Koordinaten links oben sind: x: " + enu[0] + ", y: " + enu[1] + ", z: " + enu[2]);
-
-			// Neue Koordinaten um Zentrum rechts darunter versetzt.
-			// Erg: Koordinaten rechts unten sind: x: 10.079383055515022, y: -8.452652248178886, z: -1.355316137274798E-5
-			double latp2 = 49.448180;
-			double lonp2 = 11.096101;
-			double altp2 = 46.87;
-
-			double[] ecef2 = utl.geo_to_ecef(latp2, lonp2, altp2);
-			double[] enu2 = utl.ecef2enu(ecef2[0], ecef2[1], ecef2[2], lat, lon, alt);
-			Gdx.app.log("ENU2", "Koordinaten rechts unten sind: x: " + enu2[0] + ", y: " + enu2[1] + ", z: " + enu2[2]);
+			//Gdx.app.log("ECEF1", "Koordinaten links oben sind: x: " + ecef[0] + ", y: " + ecef[1] + ", z: " + ecef[2]);
 
 
-			// Neue Korrdinaten um Zentrum links darunter versetzt.
-			// Erg.: Koordinaten links unten sind: x: -8.846663549991854, y: -15.125808148317041, z: -2.4074337785506827E-5
-			double latp3 = 49.448120;
-			double lonp3 = 11.095840;
-			double altp3 = 46.87;
-			double[] ecef3 = utl.geo_to_ecef(latp3, lonp3, altp3);
-			double[] enu3 = utl.ecef2enu(ecef3[0], ecef3[1], ecef3[2], lat, lon, alt);
-			Gdx.app.log("ENU3", "Koordinaten links unten sind: x: " + enu3[0] + ", y: " + enu3[1] + ", z: " + enu3[2]);
 
-			double[] enu4 = utl.geo2enu(latp3,lonp3, altp3);
-			Gdx.app.log("ENU4", "Koordinaten links unten sind: x: " + enu4[0] + ", y: " + enu4[1] + ", z: " + enu4[2]);
+
+			float[] currentSignal = {(float)latp,(float)lonp, (float) altp};
+			float[] currentLoc = conv.gps2LocalEnu(currentSignal);
+			//Vector3 test = new Vector3(currentSignal);
+			//Vector3 test2 = conv.gps2ecef(test);
+			Gdx.app.log("ENU2", "Koordinaten oben links sind x: " + currentLoc[0] + ", y: " + currentLoc[1] +  ", z: " + currentLoc[2]);
+			//Gdx.app.log("ECEF2", "Koordinaten links oben sind: x: " + test2.x + ", y: " + test2.y + ", z: " + test2.z);
+
+
+
+
+
+
+
+
+
+
+
+
 
 			Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
+
 
 			button2 = new TextButton("Text Button", mySkin, "small");
 			button2.setSize(300,150);
