@@ -28,7 +28,12 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.hardware.SensorEvent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -36,8 +41,13 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import static android.content.Context.LOCATION_SERVICE;
+import static android.content.Context.SENSOR_SERVICE;
+import static android.hardware.Sensor.TYPE_ORIENTATION;
+
 // alternative: public class extends ApplicationAdapter
-public class Indoorino extends Activity implements ApplicationListener {
+//public class Indoorino extends Activity implements ApplicationListener
+public class Indoorino extends ApplicationAdapter implements SensorEventListener{
 
 	// UI
 	private Stage stage;
@@ -54,8 +64,6 @@ public class Indoorino extends Activity implements ApplicationListener {
 	private Model model2;
 	private ModelInstance redBox;
 
-
-
 	private Model ground;
 	private ModelInstance groundinstance;
 	private ModelLoader loader;
@@ -71,22 +79,25 @@ public class Indoorino extends Activity implements ApplicationListener {
 	private CoordinateConverter conv;
 	private PositionCalculator posCalc;
 
+	// Compass
+	private SensorManager sensorManager;
+	private Sensor compass;
+	private float currentDegree = 0f;
 
+	// App Constructor
 	public Indoorino(AndroidApplication myapp) {
 		appl = myapp;
 	}
 
 	@Override
 	public void create() {
+		// Object Loader for loading model (school) into system
 		loader = new ObjLoader();
 		ground = loader.loadModel(Gdx.files.internal("CityBlock.obj"));
 		try {
 			groundinstance = new ModelInstance(ground, 0, 0, 0); // places Ground at center of coordinate System
 		} catch(Exception e) {
-
-			// ERROR OCCURS HERE!
-			// java.lang.NullPointerException: Attempt to read from field 'com.badlogic.gdx.utils.Array com.badlogic.gdx.graphics.g3d.Model.nodes' on a null object reference
-			Log.e("INSTANCE LOADING","Did not work" + e);
+			Log.e("INSTANCE LOADING","Did not work because: " + e);
 		}
 		groundinstance.transform.scale(0.03f, 0.03f, 0.03f);
 		groundinstance.transform.rotate(0,1,0, 180);
@@ -130,6 +141,14 @@ public class Indoorino extends Activity implements ApplicationListener {
 		Log.i("ENU", "-----------------------------------");
 
 
+		// Compass
+		sensorManager = (SensorManager) appl.getSystemService(SENSOR_SERVICE);
+		compass = sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+		if (compass != null) {
+			sensorManager.registerListener(this, compass, SensorManager.SENSOR_DELAY_GAME);
+		}
+
+		// Aktivieren  des LocationManagers für GPS Abfrage
 		locationManager = (LocationManager) appl.getContext().getSystemService(LOCATION_SERVICE);
 		locationListener = new LocationListener() {
 			@Override
@@ -146,23 +165,16 @@ public class Indoorino extends Activity implements ApplicationListener {
 
 				float[] differenceMov = posCalc.giveNewVec(movement);
 				instance.transform.translate(differenceMov[0], differenceMov[1],differenceMov[2]); // 3 float werte x, y, z
-
 			}
 
 			@Override
-			public void onStatusChanged(String provider, int status, Bundle extras) {
-
-			}
+			public void onStatusChanged(String provider, int status, Bundle extras) { }
 
 			@Override
-			public void onProviderEnabled(String provider) {
-
-			}
+			public void onProviderEnabled(String provider) { }
 
 			@Override
-			public void onProviderDisabled(String provider) {
-
-			}
+			public void onProviderDisabled(String provider) { }
 		};
 
 		appl.runOnUiThread(new Runnable() {
@@ -185,6 +197,8 @@ public class Indoorino extends Activity implements ApplicationListener {
 				} catch (Exception e){
 					Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
 				}
+
+
 			}
 		});
 
@@ -248,6 +262,7 @@ public class Indoorino extends Activity implements ApplicationListener {
 
 		}
 
+
 		@Override
 		public void render() {
 			Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Setsup view for Display.
@@ -278,14 +293,33 @@ public class Indoorino extends Activity implements ApplicationListener {
 
 		@Override
 		public void pause() {
+			sensorManager.unregisterListener(this);
 		}
 
 		@Override
 		public void resume() {
+			if (compass != null) {
+				sensorManager.registerListener(this, compass, SensorManager.SENSOR_DELAY_NORMAL);
+			}
 		}
 
 		private void loadSetup(){
 
 
 		}
+
+	// Interface method for actions when Sensor is changed
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		float degree = Math.round(event.values[0]);
+		Log.i("COMPASS","degree: " + degree + ", event.values: " + event.values[0]);
+		// create a rotation animation (reverse turn degree degrees)
+		currentDegree = -degree;
+		//Log.i("COMPASS","Rotation = " + currentDegree + ", -degree = " + -degree);
 	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+	}
+}
