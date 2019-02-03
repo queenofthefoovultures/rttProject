@@ -3,6 +3,7 @@ package com.indoorino.bme5;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -15,6 +16,7 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -24,38 +26,24 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.widget.Toast;
-
-import java.io.IOException;
-
-import static android.content.Context.LOCATION_SERVICE;
-
 
 // alternative: public class extends ApplicationAdapter
 public class Indoorino extends Activity implements ApplicationListener {
 
-
-	public LocationManager locationManager;
-	public LocationListener locationListener;
-
-	double locationLat = 0d;
-	double locationLon = 0d;
-
+	// UI
 	private Stage stage;
-
 	private Button button2;
 
+	// 3D Objects and Handlers
 	private Environment lights;
 	private PerspectiveCamera cam;
 
@@ -66,14 +54,22 @@ public class Indoorino extends Activity implements ApplicationListener {
 	private Model model2;
 	private ModelInstance redBox;
 
-	private Model model3;
-	private ModelInstance yellowBox;
+
+
+	private Model ground;
+	private ModelInstance groundinstance;
+	private ModelLoader loader;
 
 
 	// GPS Retrieval Instance
+	public LocationManager locationManager;
+	public LocationListener locationListener;
+	double locationLat = 0d;
+	double locationLon = 0d;
 	private AndroidApplication appl;
 	private CoordinateUtilities utl;
 	private CoordinateConverter conv;
+	private PositionCalculator posCalc;
 
 
 	public Indoorino(AndroidApplication myapp) {
@@ -82,11 +78,60 @@ public class Indoorino extends Activity implements ApplicationListener {
 
 	@Override
 	public void create() {
+		loader = new ObjLoader();
+		ground = loader.loadModel(Gdx.files.internal("CityBlock.obj"));
+		try {
+			groundinstance = new ModelInstance(ground, 0, 0, 0); // places Ground at center of coordinate System
+		} catch(Exception e) {
 
-			utl = new CoordinateUtilities();
+			// ERROR OCCURS HERE!
+			// java.lang.NullPointerException: Attempt to read from field 'com.badlogic.gdx.utils.Array com.badlogic.gdx.graphics.g3d.Model.nodes' on a null object reference
+			Log.e("INSTANCE LOADING","Did not work" + e);
+		}
+		groundinstance.transform.scale(0.03f, 0.03f, 0.03f);
+		groundinstance.transform.rotate(0,1,0, 180);
 
-			locationManager = (LocationManager) appl.getContext().getSystemService(LOCATION_SERVICE);
-			locationListener = new LocationListener() {
+		//Nürnberg ZENTRUM vor TH BB Gebäude
+		double lat = 49.448256;
+		double lon = 11.095962;
+		double alt = 46.87;
+		float[] centerPoint = {(float)lat,(float)lon, (float) alt};
+
+		utl = new CoordinateUtilities();
+		conv = new CoordinateConverter(centerPoint);
+
+		double[] ecefbase = utl.geo_to_ecef(lat, lon, alt);
+		float[] ecefbaseFloat = {(float)ecefbase[0],(float)ecefbase[1],(float)ecefbase[2]};
+		posCalc = new PositionCalculator(ecefbaseFloat);
+
+
+		//
+		// Vergleich zwischen Codeschnipseln
+		//
+		// Neue Koordinaten um Zentrum links drüber versetzt.
+		// Erg: Koordinaten links oben sind: x: -7.468874241294032, y: 7.006816722382261, z: -8.217153399048271E-6
+		double latp = 49.448319;
+		double lonp = 11.095859;
+		double altp = 46.87;
+		double[] ecef = utl.geo_to_ecef(latp, lonp, altp);
+		double[] enu = utl.ecef2enu(ecef[0], ecef[1], ecef[2], lat, lon, alt);
+		Gdx.app.log("ENU1", "Alte Berechnung: x: " + enu[0] + ", y: " + enu[1] + ", z: " + enu[2]);
+		//Gdx.app.log("ECEF1", "Koordinaten links oben sind: x: " + ecef[0] + ", y: " + ecef[1] + ", z: " + ecef[2]);
+
+		//
+		// Vergleich zwischen Codeschnipseln
+		//
+		float[] currentSignal = {(float)latp,(float)lonp, (float) altp};
+		float[] currentLoc = conv.gps2LocalEnu(currentSignal);
+		//Vector3 test = new Vector3(currentSignal);
+		//Vector3 test2 = conv.gps2ecef(test);
+		Gdx.app.log("ENU2", "neue Berechnung x: " + currentLoc[0] + ", y: " + currentLoc[1] +  ", z: " + currentLoc[2]);
+		//Gdx.app.log("ECEF2", "Koordinaten links oben sind: x: " + test2.x + ", y: " + test2.y + ", z: " + test2.z);
+		Log.i("ENU", "-----------------------------------");
+
+
+		locationManager = (LocationManager) appl.getContext().getSystemService(LOCATION_SERVICE);
+		locationListener = new LocationListener() {
 			@Override
 			public void onLocationChanged(Location location) {
 				locationLon = location.getLongitude();
@@ -96,7 +141,12 @@ public class Indoorino extends Activity implements ApplicationListener {
 				double[] enu4 = utl.geo2enu(locationLat,locationLon, 46.87);
 				Log.d("GPSLocationDoubl", "Folgende ENU Werte: Lat: " + enu4[0] + " Lon: " + enu4[1] + " Alt: " +  enu4[2]);
 				Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
-				instance.transform.translate((float)enu4[0],(float)enu4[2], (float)enu4[1]);
+
+				float[] movement = {(float)enu4[0],(float)enu4[2], (float)enu4[1]};
+
+				float[] differenceMov = posCalc.giveNewVec(movement);
+				instance.transform.translate(differenceMov[0], differenceMov[1],differenceMov[2]); // 3 float werte x, y, z
+
 			}
 
 			@Override
@@ -131,7 +181,7 @@ public class Indoorino extends Activity implements ApplicationListener {
 					return;
 				}
 				try {
-					//locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
 				} catch (Exception e){
 					Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
 				}
@@ -140,140 +190,77 @@ public class Indoorino extends Activity implements ApplicationListener {
 
 
 
-			stage = new Stage(new ScreenViewport());
+		stage = new Stage(new ScreenViewport());
 
-			// Initiate Light
-			lights = new Environment();
-			lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 1f, 0.4f, 0.4f, 1f));
-			lights.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-
-
-			// Initiate Camera
-			cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-			cam.position.set(0f, 200f, 0f);
-			cam.lookAt(0,0,0);
-			cam.near = 1f;
-			cam.far = 300f;
-			cam.update();
-
-			// Initiate 3D Model Handler Batch
-			modelBatch = new ModelBatch();
-			ModelBuilder modelBuilder = new ModelBuilder();
-
-			model = modelBuilder.createBox(5f, 5f, 5f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
-					VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-			instance = new ModelInstance(model, 2,2, 2);
-			instance.transform.translate(1,-2, 1);
+		// Initiate Light
+		lights = new Environment();
+		lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 1f, 0.4f, 0.4f, 1f));
+		lights.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
 
+		// Initiate Camera
+		cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		cam.position.set(0f, 100f, -90f);
+		cam.lookAt(0,0,0);
+		cam.near = 1f;
+		cam.far = 300f;
+		cam.update();
 
-			model2 = modelBuilder.createBox(10f, 3f, 6f, new Material(ColorAttribute.createDiffuse(Color.RED)),
-					VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-			redBox = new ModelInstance(model2);
+		// Initiate 3D Model Handler Batch
+		modelBatch = new ModelBatch();
+		ModelBuilder modelBuilder = new ModelBuilder();
 
-			model3 = modelBuilder.createBox(1f, 1f, 1f, new Material(ColorAttribute.createDiffuse(Color.YELLOW)),
-					VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-			yellowBox = new ModelInstance(model3, 20, 10,0);
+		model = modelBuilder.createBox(5f, 5f, 5f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
+				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+		instance = new ModelInstance(model, 2,2, 2);
+		instance.transform.translate(1,-2, 1);
+
+
+
+		model2 = modelBuilder.createBox(10f, 3f, 6f, new Material(ColorAttribute.createDiffuse(Color.RED)),
+				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+		redBox = new ModelInstance(model2);
 
 
 
 
+		Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
 
 
+		button2 = new TextButton("Text Button", mySkin, "small");button2.setSize(300,150);
+		button2.setPosition(100,100);
+		button2.addListener(new InputListener(){
+			@Override
+			public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
 
+			}
 
-
-
-			//Nürnberg ZENTRUM vor TH BB Gebäude
-			double lat = 49.448256;
-			double lon = 11.095962;
-			double alt = 46.87;
-			float[] centerPoint = {(float)lat,(float)lon, (float) alt};
-
-			utl = new CoordinateUtilities();
-			conv = new CoordinateConverter(centerPoint);
-
-			// Neue Koordinaten um Zentrum links drüber versetzt.
-			// Erg: Koordinaten links oben sind: x: -7.468874241294032, y: 7.006816722382261, z: -8.217153399048271E-6
-			double latp = 49.448319;
-			double lonp = 11.095859;
-			double altp = 46.87;
-			double[] ecef = utl.geo_to_ecef(latp, lonp, altp);
-			double[] enu = utl.ecef2enu(ecef[0], ecef[1], ecef[2], lat, lon, alt);
-			Gdx.app.log("ENU1", "Koordinaten links oben sind: x: " + enu[0] + ", y: " + enu[1] + ", z: " + enu[2]);
-			//Gdx.app.log("ECEF1", "Koordinaten links oben sind: x: " + ecef[0] + ", y: " + ecef[1] + ", z: " + ecef[2]);
-
-
-
-
-			float[] currentSignal = {(float)latp,(float)lonp, (float) altp};
-			float[] currentLoc = conv.gps2LocalEnu(currentSignal);
-			//Vector3 test = new Vector3(currentSignal);
-			//Vector3 test2 = conv.gps2ecef(test);
-			Gdx.app.log("ENU2", "Koordinaten oben links sind x: " + currentLoc[0] + ", y: " + currentLoc[1] +  ", z: " + currentLoc[2]);
-			//Gdx.app.log("ECEF2", "Koordinaten links oben sind: x: " + test2.x + ", y: " + test2.y + ", z: " + test2.z);
-
-
-
-
-
-
-
-
-
-
-
-
-
-			Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
-
-
-			button2 = new TextButton("Text Button", mySkin, "small");
-			button2.setSize(300,150);
-			button2.setPosition(100,100);
-			button2.addListener(new InputListener(){
-				@Override
-				public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
-
-
-				}
-
-				@Override
-				public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-					Gdx.app.log("Button	", " has been pressed");
-					instance.transform.rotate(1,2,3,3);
-					Gdx.app.log("GPS:", "Lat: " + locationLat + " Lon: " + locationLon);
-
-
-
-					return true;
+			@Override
+			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+				Gdx.app.log("Button	", " has been pressed");
+				instance.transform.rotate(1,2,3,3);
+				Gdx.app.log("GPS:", "Lat: " + locationLat + " Lon: " + locationLon);
+				return true;
 				}
 			});
 			stage.addActor(button2);
-
 			Gdx.input.setInputProcessor(stage);
+
 		}
 
 		@Override
 		public void render() {
 			Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Setsup view for Display.
 			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
+			Gdx.gl.glClearColor(135/255f, 206/255f, 235/255f, 1);
 			modelBatch.begin(cam);
 			modelBatch.render(instance, lights);
 			modelBatch.render(redBox, lights);
-			modelBatch.render(yellowBox, lights);
+			modelBatch.render(groundinstance, lights);
 			modelBatch.end();
 
 			stage.act();
 			stage.draw();
-
-			//spriteBatch.begin();
-
-			//font.draw(spriteBatch, "Hello World!", 10, 10);
-			//spriteBatch.end();
-
-
 
 		}
 
@@ -295,5 +282,10 @@ public class Indoorino extends Activity implements ApplicationListener {
 
 		@Override
 		public void resume() {
+		}
+
+		private void loadSetup(){
+
+
 		}
 	}

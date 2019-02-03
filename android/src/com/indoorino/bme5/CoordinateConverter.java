@@ -1,8 +1,6 @@
 package com.indoorino.bme5;
 
-import android.opengl.Matrix;
 import android.util.Log;
-
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
@@ -52,8 +50,9 @@ public class CoordinateConverter {
     }
 
     public Vector3 ecef2LocalEnu(Vector3 ecef){
+        Log.i("ecef2LocalEnu","ecef input in ecef2localEnu: " + ecef.x + ", y: " + ecef.y + ", z: " + ecef.z);
         ecef.mul(converterMatrix);
-        Log.i("ENU", "-----------------------------------");
+        Log.i("ecef2LocalEnu","ecef input in ecef2localEnu: " + ecef.x + ", y: " + ecef.y + ", z: " + ecef.z);
         return (ecef);
     }
 
@@ -73,7 +72,7 @@ public class CoordinateConverter {
                                     -ecefCpy.x,   -ecefCpy.y  ,  -ecefCpy.z ,     1  };
 
 
-        //Log.i("ENUMATRIX","ECEFCpy x: " + -ecefCpy.x + ", y: " + -ecefCpy.y + ", z: " + -ecefCpy.z);
+        Log.i("ENUMATRIX","ECEFCpy x: " + -ecefCpy.x + ", y: " + -ecefCpy.y + ", z: " + -ecefCpy.z);
         converterMatrix = new Matrix4(matrixArray4x4);
 
 
