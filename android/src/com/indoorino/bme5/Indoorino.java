@@ -18,6 +18,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -46,9 +47,15 @@ import static android.content.Context.SENSOR_SERVICE;
 import static android.hardware.Sensor.TYPE_ORIENTATION;
 
 // alternative: public class extends ApplicationAdapter
-//public class Indoorino extends Activity implements ApplicationListener
+//alternative: public class Indoorino extends Activity implements ApplicationListener
+
+// CoordinateConverter shall replace coordinateUtlities
+// Both GPS to ECEF methods work fine, although the Utilites method works better because of non-casting of doubles
+//
+
 public class Indoorino extends ApplicationAdapter implements SensorEventListener{
 
+	private static final float ninetyDeg = 90;
 	// UI
 	private Stage stage;
 	private Button button2;
@@ -76,8 +83,13 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	double locationLon = 0d;
 	private AndroidApplication appl;
 	private CoordinateUtilities utl;
-	private CoordinateConverter conv;
+	//private CoordinateConverter conv;
 	private PositionCalculator posCalc;
+
+	//Nürnberg ZENTRUM vor TH BB Gebäude
+	final double lat = 49.448256;
+	final double lon = 11.095962;
+	final double alt = 46.87;
 
 	// Compass
 	private SensorManager sensorManager;
@@ -91,6 +103,7 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 	@Override
 	public void create() {
+
 		// Object Loader for loading model (school) into system
 		loader = new ObjLoader();
 		ground = loader.loadModel(Gdx.files.internal("CityBlock.obj"));
@@ -99,47 +112,41 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 		} catch(Exception e) {
 			Log.e("INSTANCE LOADING","Did not work because: " + e);
 		}
-		groundinstance.transform.scale(0.03f, 0.03f, 0.03f);
-		groundinstance.transform.rotate(0,1,0, 180);
+		groundinstance.transform.scale(0.01f, 0.01f, 0.01f); // Scales the schoolground
+		//groundinstance.transform.rotate(0,1,0, 180);
 
-		//Nürnberg ZENTRUM vor TH BB Gebäude
-		double lat = 49.448256;
-		double lon = 11.095962;
-		double alt = 46.87;
-		float[] centerPoint = {(float)lat,(float)lon, (float) alt};
 
 		utl = new CoordinateUtilities();
-		conv = new CoordinateConverter(centerPoint);
 
+		// Initizialisation of position Calculator
 		double[] ecefbase = utl.geo_to_ecef(lat, lon, alt);
-		float[] ecefbaseFloat = {(float)ecefbase[0],(float)ecefbase[1],(float)ecefbase[2]};
-		posCalc = new PositionCalculator(ecefbaseFloat);
+		double[] enuBase = utl.ecef2enu(ecefbase[0], ecefbase[1], ecefbase[2],lat,lon,alt);
+		//Gdx.app.log("ENU", "Alte Berechnung: x: " + ecefbase[0] + ", y: " + ecefbase[1] + ", z: " + ecefbase[2]);
+		Gdx.app.log("ENU-posCalc-Initialisierung","X : " + ecefbase[0] + ", Y: " + ecefbase[1] + ", Z: " + ecefbase[2]);
+		posCalc = new PositionCalculator(enuBase);
 
-
-		//
 		// Vergleich zwischen Codeschnipseln
 		//
 		// Neue Koordinaten um Zentrum links drüber versetzt.
 		// Erg: Koordinaten links oben sind: x: -7.468874241294032, y: 7.006816722382261, z: -8.217153399048271E-6
-		double latp = 49.448319;
-		double lonp = 11.095859;
-		double altp = 46.87;
-		double[] ecef = utl.geo_to_ecef(latp, lonp, altp);
-		double[] enu = utl.ecef2enu(ecef[0], ecef[1], ecef[2], lat, lon, alt);
-		Gdx.app.log("ENU1", "Alte Berechnung: x: " + enu[0] + ", y: " + enu[1] + ", z: " + enu[2]);
+		//double latp = 49.448319;
+		//double lonp = 11.095859;
+		//double altp = 46.87;
+		//double[] ecef = utl.geo_to_ecef(latp, lonp, altp);
+		//double[] enu = utl.ecef2enu(ecef[0], ecef[1], ecef[2], lat, lon, alt);
+		//Gdx.app.log("ENU1", "Alte Berechnung: x: " + enu[0] + ", y: " + enu[1] + ", z: " + enu[2]);
 		//Gdx.app.log("ECEF1", "Koordinaten links oben sind: x: " + ecef[0] + ", y: " + ecef[1] + ", z: " + ecef[2]);
 
 		//
 		// Vergleich zwischen Codeschnipseln
 		//
-		float[] currentSignal = {(float)latp,(float)lonp, (float) altp};
-		float[] currentLoc = conv.gps2LocalEnu(currentSignal);
+		//float[] currentSignal = {(float)latp,(float)lonp, (float) altp};
+		//float[] currentLoc = conv.gps2LocalEnu(currentSignal);
 		//Vector3 test = new Vector3(currentSignal);
 		//Vector3 test2 = conv.gps2ecef(test);
-		Gdx.app.log("ENU2", "neue Berechnung x: " + currentLoc[0] + ", y: " + currentLoc[1] +  ", z: " + currentLoc[2]);
+		//Gdx.app.log("ENU2", "neue Berechnung x: " + currentLoc[0] + ", y: " + currentLoc[1] +  ", z: " + currentLoc[2]);
 		//Gdx.app.log("ECEF2", "Koordinaten links oben sind: x: " + test2.x + ", y: " + test2.y + ", z: " + test2.z);
-		Log.i("ENU", "-----------------------------------");
-
+		//Log.i("ENU", "-----------------------------------");
 
 		// Compass
 		sensorManager = (SensorManager) appl.getSystemService(SENSOR_SERVICE);
@@ -155,16 +162,18 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 			public void onLocationChanged(Location location) {
 				locationLon = location.getLongitude();
 				locationLat = location.getLatitude();
-				Log.d("GPSLocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
+				//Log.d("GPSLocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
 
-				double[] enu4 = utl.geo2enu(locationLat,locationLon, 46.87);
-				Log.d("GPSLocationDoubl", "Folgende ENU Werte: Lat: " + enu4[0] + " Lon: " + enu4[1] + " Alt: " +  enu4[2]);
-				Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
+				double[] enu4 = utl.geo2enu(locationLat,locationLon, alt);
+				Log.d("ENU Double", "Folgende ENU Werte: X: " + enu4[0] + " Y: " + enu4[1] + " Z: " +  enu4[2]);
+				//Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
 
-				float[] movement = {(float)enu4[0],(float)enu4[2], (float)enu4[1]};
-
-				float[] differenceMov = posCalc.giveNewVec(movement);
-				instance.transform.translate(differenceMov[0], differenceMov[1],differenceMov[2]); // 3 float werte x, y, z
+				double[] differenceMov = posCalc.giveNewVec(enu4);
+				Gdx.app.log("posCalc.giveNewVec Verschiebung: ","x = " + differenceMov[0] + ", y = " + differenceMov[1] + ", z = " + differenceMov[2]);
+				// Movement of the playerobject
+				instance.transform.translate((float)differenceMov[0], 1, -(float)differenceMov[1]); // 3 float werte x, y, z = (float)differenceMov[2]
+				Vector3 dfdf = instance.transform.getTranslation(new Vector3());
+				Gdx.app.log("Würfel Position: ","X = " + dfdf.x + ", Y = " + dfdf.y + ", Z = " + dfdf.z);
 			}
 
 			@Override
@@ -179,7 +188,6 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 		appl.runOnUiThread(new Runnable() {
 			public void run() {
-				Toast.makeText(appl, "hey", Toast.LENGTH_SHORT).show();
 				// appl.getContext().
 				if (appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 					// TODO: Consider calling
@@ -194,15 +202,14 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 				}
 				try {
 					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+					Toast.makeText(appl, "GPS Activated", Toast.LENGTH_LONG).show();
 				} catch (Exception e){
+
 					Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
+					Toast.makeText(appl, "GPS Activation failed", Toast.LENGTH_LONG).show();
 				}
-
-
 			}
 		});
-
-
 
 		stage = new Stage(new ScreenViewport());
 
@@ -211,31 +218,26 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 		lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 1f, 0.4f, 0.4f, 1f));
 		lights.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
-
 		// Initiate Camera
 		cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		cam.position.set(0f, 100f, -90f);
+		cam.position.set(00f, 40f, 30f);
 		cam.lookAt(0,0,0);
 		cam.near = 1f;
-		cam.far = 300f;
+		cam.far = 200f;
 		cam.update();
 
 		// Initiate 3D Model Handler Batch
 		modelBatch = new ModelBatch();
 		ModelBuilder modelBuilder = new ModelBuilder();
 
-		model = modelBuilder.createBox(5f, 5f, 5f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
+		model = modelBuilder.createBox(1f, 1f, 1f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-		instance = new ModelInstance(model, 2,2, 2);
-		instance.transform.translate(1,-2, 1);
-
-
+		instance = new ModelInstance(model, 0,0, 0);
+		//instance.transform.translate(1,-2, 1);
 
 		model2 = modelBuilder.createBox(10f, 3f, 6f, new Material(ColorAttribute.createDiffuse(Color.RED)),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 		redBox = new ModelInstance(model2);
-
-
 
 
 		Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
@@ -270,13 +272,12 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 			Gdx.gl.glClearColor(135/255f, 206/255f, 235/255f, 1);
 			modelBatch.begin(cam);
 			modelBatch.render(instance, lights);
-			modelBatch.render(redBox, lights);
+			//modelBatch.render(redBox, lights);
 			modelBatch.render(groundinstance, lights);
 			modelBatch.end();
 
 			stage.act();
 			stage.draw();
-
 		}
 
 		@Override
@@ -304,18 +305,18 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 		}
 
 		private void loadSetup(){
-
-
 		}
 
 	// Interface method for actions when Sensor is changed
 	@Override
 	public void onSensorChanged(SensorEvent event) {
-		float degree = Math.round(event.values[0]);
-		Log.i("COMPASS","degree: " + degree + ", event.values: " + event.values[0]);
+		float degree = Math.round(event.values[0]) + ninetyDeg; // app only landscape mode, therefore 90 Deg rotation
+		//Log.i("COMPASS","degree: " + degree + ", event.values: " + event.values[0]);
 		// create a rotation animation (reverse turn degree degrees)
 		currentDegree = -degree;
 		//Log.i("COMPASS","Rotation = " + currentDegree + ", -degree = " + -degree);
+		float rotationDiff = posCalc.rotateDiff(-degree);
+		instance.transform.rotate(0,1,0, rotationDiff);
 	}
 
 	@Override

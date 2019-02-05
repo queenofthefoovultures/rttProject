@@ -1,5 +1,6 @@
 package com.indoorino.bme5;
 
+import android.util.Log;
 
 import java.lang.*;
 
@@ -15,7 +16,7 @@ public class CoordinateUtilities {
     // Center Koordinates of calculated Area
     private static double centerLat = 49.448256;    // Degrees
     private static double centerLon = 11.095962;    // Degrees
-    private static double centerAlt = 46.87;         // Meters
+    private static double centerAlt = 46.87;        // Meters
 
     CoordinateUtilities(){
     }
@@ -25,6 +26,7 @@ public class CoordinateUtilities {
     public static double[] geo2enu(double lat, double lon, double alt){
         double[] ecef = geo_to_ecef(lat, lon, alt);
         double[] enu = ecef2enu(ecef[0], ecef[1], ecef[2], centerLat, centerLon, centerAlt);
+        Log.i("ENU in geo2enu func","X = " + enu[0] + ", Y = " + enu[1] + ", Z = " + enu[2]);
         return enu;
     }
 
