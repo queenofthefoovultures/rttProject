@@ -17,18 +17,23 @@ public class CoordinateConverter {
 
     // Constructor gets float-array of GPS Basis Coordinate
     CoordinateConverter(float[] gpsBasePoint){
-        gpsBaseCoordinate = new Vector3(gpsBasePoint[0], gpsBasePoint[1], gpsBasePoint[2]);
-        ecefBaseCoordinate = this.gps2ecef(gpsBaseCoordinate);
-        this.createConverterMatrix(ecefBaseCoordinate);
+
+        gpsBaseCoordinate = new Vector3(gpsBasePoint[0], gpsBasePoint[1], gpsBasePoint[2]); // Storing basePoint in a lokal variable Vector3
+        ecefBaseCoordinate = this.gps2ecef(gpsBaseCoordinate); // Calculating and storing the ecef-values of basePoint in a lokal variable Vector3
+        this.createConverterMatrix(ecefBaseCoordinate); // Creating the converterMatrix
     }
+
     // Sets up new BasePoint as it creates new converterMatrix and updates the baseCoordinates
+    /*
     public void setNewBasePoint(float[] gps){
         gpsBaseCoordinate = new Vector3(gps[0], gps[1], gps[2]);
         ecefBaseCoordinate = gps2ecef(gpsBaseCoordinate);
         createConverterMatrix(ecefBaseCoordinate);
     }
-
+    */
+    // Converting input gps Data to ecef coordinates
     // Input = GPS float Array //  0 = Latitude, 1 = Longitude, 2 = Altitude
+    // Output = ENU Coordinates -> float-array
     public float[] gps2LocalEnu(float[] gps){
         Vector3 gpsInput =  new Vector3(gps[0], gps[1], gps[2]);
         Vector3 ecef = gps2ecef(gpsInput);
@@ -50,9 +55,9 @@ public class CoordinateConverter {
     }
 
     public Vector3 ecef2LocalEnu(Vector3 ecef){
-        Log.i("ecef2LocalEnu","ecef input in ecef2localEnu: " + ecef.x + ", y: " + ecef.y + ", z: " + ecef.z);
+        //Log.i("ecef2LocalEnu","ecef input in ecef2localEnu: " + ecef.x + ", y: " + ecef.y + ", z: " + ecef.z);
         ecef.mul(converterMatrix);
-        Log.i("ecef2LocalEnu","ecef input in ecef2localEnu: " + ecef.x + ", y: " + ecef.y + ", z: " + ecef.z);
+        //Log.i("ecef2LocalEnu","ecef input in ecef2localEnu: " + ecef.x + ", y: " + ecef.y + ", z: " + ecef.z);
         return (ecef);
     }
 
@@ -74,6 +79,7 @@ public class CoordinateConverter {
 
         Log.i("ENUMATRIX","ECEFCpy x: " + -ecefCpy.x + ", y: " + -ecefCpy.y + ", z: " + -ecefCpy.z);
         converterMatrix = new Matrix4(matrixArray4x4);
+        Log.i("ENUMATRIX", "" + converterMatrix);
 
 
     }

@@ -75,7 +75,6 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	private ModelInstance groundinstance;
 	private ModelLoader loader;
 
-
 	// GPS Retrieval Instance
 	public LocationManager locationManager;
 	public LocationListener locationListener;
@@ -86,15 +85,30 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	//private CoordinateConverter conv;
 	private PositionCalculator posCalc;
 
-	//Nürnberg ZENTRUM vor TH BB Gebäude
-	final double lat = 49.448256;
-	final double lon = 11.095962;
-	final double alt = 46.87;
-
 	// Compass
 	private SensorManager sensorManager;
 	private Sensor compass;
 	private float currentDegree = 0f;
+
+
+
+
+
+	// Nürnberg 0-Punkt an TH BB Gebäude
+	final double lat = 49.448420;
+	final double lon = 11.096092;
+	//final double lat = 49.448256;
+	//final double lon = 11.095962;
+	final double alt = 311; // WGS84 46.87;
+
+	// Nürnberg links vor Parkhaus
+	final double latlp = 49.448259;
+	final double lonlp = 11.095791;
+
+	final double latubb = 49.448149;
+	final double lonubb = 11.096159;
+
+
 
 	// App Constructor
 	public Indoorino(AndroidApplication myapp) {
@@ -106,14 +120,14 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 		// Object Loader for loading model (school) into system
 		loader = new ObjLoader();
-		ground = loader.loadModel(Gdx.files.internal("CityBlock.obj"));
+		ground = loader.loadModel(Gdx.files.internal("CityBlock2.obj"));
 		try {
 			groundinstance = new ModelInstance(ground, 0, 0, 0); // places Ground at center of coordinate System
 		} catch(Exception e) {
 			Log.e("INSTANCE LOADING","Did not work because: " + e);
 		}
 		groundinstance.transform.scale(0.01f, 0.01f, 0.01f); // Scales the schoolground
-		//groundinstance.transform.rotate(0,1,0, 180);
+		//groundinstance.transform.rotate(0,1,0, 180); function for rotating the whole area
 
 
 		utl = new CoordinateUtilities();
@@ -125,28 +139,6 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 		Gdx.app.log("ENU-posCalc-Initialisierung","X : " + ecefbase[0] + ", Y: " + ecefbase[1] + ", Z: " + ecefbase[2]);
 		posCalc = new PositionCalculator(enuBase);
 
-		// Vergleich zwischen Codeschnipseln
-		//
-		// Neue Koordinaten um Zentrum links drüber versetzt.
-		// Erg: Koordinaten links oben sind: x: -7.468874241294032, y: 7.006816722382261, z: -8.217153399048271E-6
-		//double latp = 49.448319;
-		//double lonp = 11.095859;
-		//double altp = 46.87;
-		//double[] ecef = utl.geo_to_ecef(latp, lonp, altp);
-		//double[] enu = utl.ecef2enu(ecef[0], ecef[1], ecef[2], lat, lon, alt);
-		//Gdx.app.log("ENU1", "Alte Berechnung: x: " + enu[0] + ", y: " + enu[1] + ", z: " + enu[2]);
-		//Gdx.app.log("ECEF1", "Koordinaten links oben sind: x: " + ecef[0] + ", y: " + ecef[1] + ", z: " + ecef[2]);
-
-		//
-		// Vergleich zwischen Codeschnipseln
-		//
-		//float[] currentSignal = {(float)latp,(float)lonp, (float) altp};
-		//float[] currentLoc = conv.gps2LocalEnu(currentSignal);
-		//Vector3 test = new Vector3(currentSignal);
-		//Vector3 test2 = conv.gps2ecef(test);
-		//Gdx.app.log("ENU2", "neue Berechnung x: " + currentLoc[0] + ", y: " + currentLoc[1] +  ", z: " + currentLoc[2]);
-		//Gdx.app.log("ECEF2", "Koordinaten links oben sind: x: " + test2.x + ", y: " + test2.y + ", z: " + test2.z);
-		//Log.i("ENU", "-----------------------------------");
 
 		// Compass
 		sensorManager = (SensorManager) appl.getSystemService(SENSOR_SERVICE);
@@ -220,8 +212,8 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 		// Initiate Camera
 		cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		cam.position.set(00f, 40f, 30f);
-		cam.lookAt(0,0,0);
+		cam.position.set(-20f, 40f, 60f);
+		cam.lookAt(-20f,0f,20f);
 		cam.near = 1f;
 		cam.far = 200f;
 		cam.update();

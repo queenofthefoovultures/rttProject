@@ -14,9 +14,11 @@ public class CoordinateUtilities {
     //private static final double e2 = 6.6943799901377997e-3;  //WGS-84 first eccentricity squared
 
     // Center Koordinates of calculated Area
-    private static double centerLat = 49.448256;    // Degrees
-    private static double centerLon = 11.095962;    // Degrees
-    private static double centerAlt = 46.87;        // Meters
+    private static final double centerLat = 49.448420; // Ecke Straße BB Gebäude als Fixpunkt
+    private static final double centerLon = 11.096092; // " gemessen mit Endgerät
+    //private static double centerLat = 49.448256;    // Degrees
+    //private static double centerLon = 11.095962;    // Degrees
+    private static double centerAlt = 309; // 311// WGS84 46.87;        // Meters
 
     CoordinateUtilities(){
     }
