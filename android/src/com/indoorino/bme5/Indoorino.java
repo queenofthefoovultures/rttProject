@@ -49,7 +49,7 @@ import static android.hardware.Sensor.TYPE_ORIENTATION;
 // alternative: public class extends ApplicationAdapter
 //alternative: public class Indoorino extends Activity implements ApplicationListener
 
-// CoordinateConverter shall replace coordinateUtlities
+
 // Both GPS to ECEF methods work fine, although the Utilites method works better because of non-casting of doubles
 //
 
@@ -82,16 +82,12 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	double locationLon = 0d;
 	private AndroidApplication appl;
 	private CoordinateUtilities utl;
-	//private CoordinateConverter conv;
 	private PositionCalculator posCalc;
 
 	// Compass
 	private SensorManager sensorManager;
 	private Sensor compass;
 	private float currentDegree = 0f;
-
-
-
 
 
 	// Nürnberg 0-Punkt an TH BB Gebäude
@@ -109,7 +105,6 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	final double lonubb = 11.096159;
 
 
-
 	// App Constructor
 	public Indoorino(AndroidApplication myapp) {
 		appl = myapp;
@@ -120,17 +115,18 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 		// Object Loader for loading model (school) into system
 		loader = new ObjLoader();
-		ground = loader.loadModel(Gdx.files.internal("CityBlock2.obj"));
+		ground = loader.loadModel(Gdx.files.internal("CityblockMeter5.obj"));
 		try {
 			groundinstance = new ModelInstance(ground, 0, 0, 0); // places Ground at center of coordinate System
+			Log.i("INSTANCE LOADING","Import did work");
 		} catch(Exception e) {
 			Log.e("INSTANCE LOADING","Did not work because: " + e);
 		}
-		groundinstance.transform.scale(0.01f, 0.01f, 0.01f); // Scales the schoolground
+		//groundinstance.transform.scale(0.01f, 0.01f, 0.01f); // Scales the schoolground
 		//groundinstance.transform.rotate(0,1,0, 180); function for rotating the whole area
 
 
-		utl = new CoordinateUtilities();
+		utl = new CoordinateUtilities(lat, lon, alt);
 
 		// Initizialisation of position Calculator
 		double[] ecefbase = utl.geo_to_ecef(lat, lon, alt);
@@ -138,7 +134,6 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 		//Gdx.app.log("ENU", "Alte Berechnung: x: " + ecefbase[0] + ", y: " + ecefbase[1] + ", z: " + ecefbase[2]);
 		Gdx.app.log("ENU-posCalc-Initialisierung","X : " + ecefbase[0] + ", Y: " + ecefbase[1] + ", Z: " + ecefbase[2]);
 		posCalc = new PositionCalculator(enuBase);
-
 
 		// Compass
 		sensorManager = (SensorManager) appl.getSystemService(SENSOR_SERVICE);
@@ -157,7 +152,7 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 				//Log.d("GPSLocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
 
 				double[] enu4 = utl.geo2enu(locationLat,locationLon, alt);
-				Log.d("ENU Double", "Folgende ENU Werte: X: " + enu4[0] + " Y: " + enu4[1] + " Z: " +  enu4[2]);
+				//Log.d("ENU Double", "Folgende ENU Werte: X: " + enu4[0] + " Y: " + enu4[1] + " Z: " +  enu4[2]);
 				//Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
 
 				double[] differenceMov = posCalc.giveNewVec(enu4);
@@ -222,7 +217,7 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 		modelBatch = new ModelBatch();
 		ModelBuilder modelBuilder = new ModelBuilder();
 
-		model = modelBuilder.createBox(1f, 1f, 1f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
+		model = modelBuilder.createBox(0.5f, 2f, 0.5f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 		instance = new ModelInstance(model, 0,0, 0);
 		//instance.transform.translate(1,-2, 1);

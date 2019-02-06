@@ -14,18 +14,21 @@ public class CoordinateUtilities {
     //private static final double e2 = 6.6943799901377997e-3;  //WGS-84 first eccentricity squared
 
     // Center Koordinates of calculated Area
-    private static final double centerLat = 49.448420; // Ecke Straße BB Gebäude als Fixpunkt
-    private static final double centerLon = 11.096092; // " gemessen mit Endgerät
+    private double centerLat = 0d; // Ecke Straße BB Gebäude als Fixpunkt
+    private double centerLon = 0d; // " gemessen mit Endgerät
     //private static double centerLat = 49.448256;    // Degrees
     //private static double centerLon = 11.095962;    // Degrees
-    private static double centerAlt = 309; // 311// WGS84 46.87;        // Meters
+    private static double centerAlt = 0; // 311// WGS84 46.87;        // Meters
 
-    CoordinateUtilities(){
+    CoordinateUtilities(double lat, double lon, double alt){
+        centerLat = lat;
+        centerLon = lon;
+        centerAlt = alt;
     }
 
     // Combination of geo2ecef And ecef2enu
     // Input Arguments: current position latitude, current position longitude, current position altitude
-    public static double[] geo2enu(double lat, double lon, double alt){
+    public double[] geo2enu(double lat, double lon, double alt){
         double[] ecef = geo_to_ecef(lat, lon, alt);
         double[] enu = ecef2enu(ecef[0], ecef[1], ecef[2], centerLat, centerLon, centerAlt);
         Log.i("ENU in geo2enu func","X = " + enu[0] + ", Y = " + enu[1] + ", Z = " + enu[2]);
@@ -36,7 +39,7 @@ public class CoordinateUtilities {
     // East-North-Up coordinates in a Local Tangent Plane that is centered at the
     // (WGS-84) Geodetic point (lat0, lon0, h0).
     // https://gist.github.com/govert/1b373696c9a27ff4c72a
-    public static double[] ecef2enu(double x, double y, double z, double lat0, double lon0, double h0){
+    public double[] ecef2enu(double x, double y, double z, double lat0, double lon0, double h0){
 
         double lambda = Math.toRadians(lat0);
         double phi = Math.toRadians(lon0);
