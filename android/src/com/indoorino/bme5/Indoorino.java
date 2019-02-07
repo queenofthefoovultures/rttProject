@@ -1,7 +1,6 @@
 package com.indoorino.bme5;
 
 import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.backends.android.AndroidApplication;
@@ -18,7 +17,6 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -28,8 +26,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
@@ -47,11 +43,7 @@ import static android.content.Context.SENSOR_SERVICE;
 import static android.hardware.Sensor.TYPE_ORIENTATION;
 
 // alternative: public class extends ApplicationAdapter
-//alternative: public class Indoorino extends Activity implements ApplicationListener
-
-
-// Both GPS to ECEF methods work fine, although the Utilites method works better because of non-casting of doubles
-//
+// alternative: public class Indoorino extends Activity implements ApplicationListener
 
 public class Indoorino extends ApplicationAdapter implements SensorEventListener{
 
@@ -67,9 +59,6 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	private ModelBatch modelBatch;
 	private Model model;
 	private ModelInstance instance;
-
-	private Model model2;
-	private ModelInstance redBox;
 
 	private Model ground;
 	private ModelInstance groundinstance;
@@ -91,18 +80,20 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 
 	// Nürnberg 0-Punkt an TH BB Gebäude
-	final double lat = 49.448420;
-	final double lon = 11.096092;
-	//final double lat = 49.448256;
-	//final double lon = 11.095962;
+	final double lat = 49.448380; // aus GoogleMaps
+	final double lon = 11.096160; // aus GoogleMaps
+
+	//final double lat = 49.448256; //gemessen mit Smartphone
+	//final double lon = 11.095962; // gemessen mit Smartphone
 	final double alt = 311; // WGS84 46.87;
 
 	// Nürnberg links vor Parkhaus
-	final double latlp = 49.448259;
-	final double lonlp = 11.095791;
+	final double latlp = 49.448241;
+	final double lonlp = 11.095696;
 
-	final double latubb = 49.448149;
-	final double lonubb = 11.096159;
+	// Nürnberg unten neben BB Gebäude
+	final double latubb = 49.448073;
+	final double lonubb = 11.096225;
 
 
 	// App Constructor
@@ -113,7 +104,7 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	@Override
 	public void create() {
 
-		// Object Loader for loading model (school) into system
+		// Object Loader for loading model (schoolarea) into system
 		loader = new ObjLoader();
 		ground = loader.loadModel(Gdx.files.internal("CityblockMeter5.obj"));
 		try {
@@ -123,38 +114,35 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 			Log.e("INSTANCE LOADING","Did not work because: " + e);
 		}
 		//groundinstance.transform.scale(0.01f, 0.01f, 0.01f); // Scales the schoolground
-		//groundinstance.transform.rotate(0,1,0, 180); function for rotating the whole area
+		groundinstance.transform.rotate(0,1,0, 10); // rotates the area by 10 percent
 
-
+		// Initialisation of Coordinate Converter
 		utl = new CoordinateUtilities(lat, lon, alt);
 
-		// Initizialisation of position Calculator
+		// Initialisation of position Calculator with center values
 		double[] ecefbase = utl.geo_to_ecef(lat, lon, alt);
-		double[] enuBase = utl.ecef2enu(ecefbase[0], ecefbase[1], ecefbase[2],lat,lon,alt);
-		//Gdx.app.log("ENU", "Alte Berechnung: x: " + ecefbase[0] + ", y: " + ecefbase[1] + ", z: " + ecefbase[2]);
-		Gdx.app.log("ENU-posCalc-Initialisierung","X : " + ecefbase[0] + ", Y: " + ecefbase[1] + ", Z: " + ecefbase[2]);
+		double[] enuBase = utl.ecef_to_enu(ecefbase[0], ecefbase[1], ecefbase[2],lat,lon,alt);
+		//Gdx.app.log("ENU-posCalc-Initialisierung","X : " + ecefbase[0] + ", Y: " + ecefbase[1] + ", Z: " + ecefbase[2]);
 		posCalc = new PositionCalculator(enuBase);
 
-		// Compass
+		// Initialisation of the compass
 		sensorManager = (SensorManager) appl.getSystemService(SENSOR_SERVICE);
 		compass = sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
 		if (compass != null) {
 			sensorManager.registerListener(this, compass, SensorManager.SENSOR_DELAY_GAME);
 		}
 
-		// Aktivieren  des LocationManagers für GPS Abfrage
+		// Initialisation of the LocationManager/Listener for GPS retrieval
 		locationManager = (LocationManager) appl.getContext().getSystemService(LOCATION_SERVICE);
 		locationListener = new LocationListener() {
 			@Override
 			public void onLocationChanged(Location location) {
+				// Actions when location changed
 				locationLon = location.getLongitude();
 				locationLat = location.getLatitude();
-				//Log.d("GPSLocation","gps is updated lat: " + locationLat + ", lon: " + locationLon);
-
-				double[] enu4 = utl.geo2enu(locationLat,locationLon, alt);
-				//Log.d("ENU Double", "Folgende ENU Werte: X: " + enu4[0] + " Y: " + enu4[1] + " Z: " +  enu4[2]);
-				//Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
-
+				// Convert latest GPS Data to ENU Coordinates
+				double[] enu4 = utl.geo_to_enu(locationLat,locationLon, alt);
+				// Give 'em to differenceCalcualtor
 				double[] differenceMov = posCalc.giveNewVec(enu4);
 				Gdx.app.log("posCalc.giveNewVec Verschiebung: ","x = " + differenceMov[0] + ", y = " + differenceMov[1] + ", z = " + differenceMov[2]);
 				// Movement of the playerobject
@@ -188,12 +176,12 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 					return;
 				}
 				try {
-					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+					//locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
 					Toast.makeText(appl, "GPS Activated", Toast.LENGTH_LONG).show();
 				} catch (Exception e){
 
 					Log.e("GPSAKTIVIERUNGSFEHLER", "" + e);
-					Toast.makeText(appl, "GPS Activation failed", Toast.LENGTH_LONG).show();
+					Toast.makeText(appl, "GPS Activation failed, turn it on!", Toast.LENGTH_LONG).show();
 				}
 			}
 		});
@@ -220,35 +208,38 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 		model = modelBuilder.createBox(0.5f, 2f, 0.5f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 		instance = new ModelInstance(model, 0,0, 0);
-		//instance.transform.translate(1,-2, 1);
 
-		model2 = modelBuilder.createBox(10f, 3f, 6f, new Material(ColorAttribute.createDiffuse(Color.RED)),
-				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-		redBox = new ModelInstance(model2);
-
-
+		// Adding Button to Stage for UI = Skin for Button, Button, Actions for Button
 		Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
-
-
 		button2 = new TextButton("Text Button", mySkin, "small");button2.setSize(300,150);
 		button2.setPosition(100,100);
 		button2.addListener(new InputListener(){
 			@Override
-			public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
-
-			}
+			public void touchUp (InputEvent event, float x, float y, int pointer, int button) { }
 
 			@Override
 			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
 				Gdx.app.log("Button	", " has been pressed");
 				instance.transform.rotate(1,2,3,3);
 				Gdx.app.log("GPS:", "Lat: " + locationLat + " Lon: " + locationLon);
+
+
+				double[] enu43 = utl.geo_to_enu(latubb,lonubb, alt);
+				Log.d("ENU TEST", "Folgende ENU Werte: X: " + enu43[0] + " Y: " + enu43[1] + " Z: " +  enu43[2]);
+				//Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
+
+				//double[] differenceMov = posCalc.giveNewVec(enu43);
+				//Gdx.app.log("posCalc.giveNewVec Verschiebung: ","x = " + differenceMov[0] + ", y = " + differenceMov[1] + ", z = " + differenceMov[2]);
+				// Movement of the playerobject
+				//instance.transform.translate((float)differenceMov[0], 1, -(float)differenceMov[1]); // 3 float werte x, y, z = (float)differenceMov[2]
+				Vector3 dfdf = instance.transform.getTranslation(new Vector3());
+				Gdx.app.log("Würfel Position: ","X = " + dfdf.x + ", Y = " + dfdf.y + ", Z = " + dfdf.z);
+
 				return true;
 				}
 			});
 			stage.addActor(button2);
 			Gdx.input.setInputProcessor(stage);
-
 		}
 
 
@@ -259,20 +250,19 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 			Gdx.gl.glClearColor(135/255f, 206/255f, 235/255f, 1);
 			modelBatch.begin(cam);
 			modelBatch.render(instance, lights);
-			//modelBatch.render(redBox, lights);
 			modelBatch.render(groundinstance, lights);
 			modelBatch.end();
-
 			stage.act();
 			stage.draw();
 		}
 
 		@Override
 		public void dispose() {
-			modelBatch.dispose();
-			model.dispose();
-			model2.dispose();
-			stage.dispose();
+			// When app is closed, all instances here listed will be disposed.
+			modelBatch.dispose(); // Model handler
+			model.dispose(); // green Cube Model
+			ground.dispose(); // Area-load-In Model
+			stage.dispose(); // Frame for UI with Button
 		}
 
 		@Override
