@@ -17,6 +17,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -35,6 +36,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -95,6 +97,25 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 	final double latubb = 49.448073;
 	final double lonubb = 11.096225;
 
+	final double lattest = 49.448122;
+	final double lontest = 11.095949;
+
+	final double lattest2 = 49.448116;
+	final double lontest2 = 11.095942;
+
+	final double lattest3 = 49.448108;
+	final double lontest3 = 11.095948;
+
+	final double lattest4 = 49.448100;
+	final double lontest4 = 11.095885;
+
+
+	/*
+	Location[gps
+	Location[gps ,
+	Location[gps ,
+	Location[gps ,
+	*/
 
 	// App Constructor
 	public Indoorino(AndroidApplication myapp) {
@@ -114,7 +135,7 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 			Log.e("INSTANCE LOADING","Did not work because: " + e);
 		}
 		//groundinstance.transform.scale(0.01f, 0.01f, 0.01f); // Scales the schoolground
-		groundinstance.transform.rotate(0,1,0, 10); // rotates the area by 10 percent
+		groundinstance.transform.rotate(0,1,0, 25); // rotates the area by 10 percent
 
 		// Initialisation of Coordinate Converter
 		utl = new CoordinateUtilities(lat, lon, alt);
@@ -143,12 +164,16 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 				// Convert latest GPS Data to ENU Coordinates
 				double[] enu4 = utl.geo_to_enu(locationLat,locationLon, alt);
 				// Give 'em to differenceCalcualtor
-				double[] differenceMov = posCalc.giveNewVec(enu4);
-				Gdx.app.log("posCalc.giveNewVec Verschiebung: ","x = " + differenceMov[0] + ", y = " + differenceMov[1] + ", z = " + differenceMov[2]);
+				//double[] differenceMov = posCalc.giveNewVec(enu4);
+				//Gdx.app.log("posCalc.giveNewVec Verschiebung: ","x = " + differenceMov[0] + ", y = " + differenceMov[1] + ", z = " + differenceMov[2]);
 				// Movement of the playerobject
-				instance.transform.translate((float)differenceMov[0], 1, -(float)differenceMov[1]); // 3 float werte x, y, z = (float)differenceMov[2]
-				Vector3 dfdf = instance.transform.getTranslation(new Vector3());
-				Gdx.app.log("Würfel Position: ","X = " + dfdf.x + ", Y = " + dfdf.y + ", Z = " + dfdf.z);
+				//instance.transform.translate((float)differenceMov[0], 1, -(float)differenceMov[1]); // 3 float werte x, y, z = (float)differenceMov[2]
+				//Vector3 dfdf = instance.transform.getTranslation(new Vector3());
+				//Gdx.app.log("Würfel Position: ","X = " + dfdf.x + ", Y = " + dfdf.y + ", Z = " + dfdf.z);
+				// X = X, Y = -Z, Z = 0Y
+				Quaternion df = new Quaternion();
+				instance.transform.getRotation(df);
+				instance.transform.set(new Vector3((float)enu4[0],1,(float)enu4[1]*(-1)), df);
 			}
 
 			@Override
@@ -163,7 +188,6 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 		appl.runOnUiThread(new Runnable() {
 			public void run() {
-				// appl.getContext().
 				if (appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && appl.getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 					// TODO: Consider calling
 					//    Activity#requestPermissions
@@ -172,11 +196,11 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 					//                                          int[] grantResults)
 					// to handle the case where the user grants the permission. See the documentation
 					// for Activity#requestPermissions for more details.
-					//ActivityCompat.requestPermissions(this, new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, 10);
+					// ActivityCompat.requestPermissions(this, new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, 10);
 					return;
 				}
 				try {
-					//locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
 					Toast.makeText(appl, "GPS Activated", Toast.LENGTH_LONG).show();
 				} catch (Exception e){
 
@@ -207,7 +231,9 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 
 		model = modelBuilder.createBox(0.5f, 2f, 0.5f, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-		instance = new ModelInstance(model, 0,0, 0);
+
+		//ENU Werte: X: -15.373529894298624 Y: -30.252863196922828 Z: -9.029922470915608E-5
+		instance = new ModelInstance(model, 0,1, 0);
 
 		// Adding Button to Stage for UI = Skin for Button, Button, Actions for Button
 		Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
@@ -221,11 +247,22 @@ public class Indoorino extends ApplicationAdapter implements SensorEventListener
 			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
 				Gdx.app.log("Button	", " has been pressed");
 				instance.transform.rotate(1,2,3,3);
-				Gdx.app.log("GPS:", "Lat: " + locationLat + " Lon: " + locationLon);
+				//Gdx.app.log("GPS:", "Lat: " + locationLat + " Lon: " + locationLon);
+
+				double[] enu43 = utl.geo_to_enu(lattest,lontest, alt);
+				Log.d("ENUTEST", "Folgende ENU Werte: X: " + enu43[0] + " Y: " + enu43[1] + " Z: " +  enu43[2]);
+
+				double[] enu44 = utl.geo_to_enu(lattest2,lontest2, alt);
+				Log.d("ENUTEST", "Folgende ENU Werte: X: " + enu44[0] + " Y: " + enu44[1] + " Z: " +  enu44[2]);
+
+				double[] enu45 = utl.geo_to_enu(lattest3,lontest3, alt);
+				Log.d("ENUTEST", "Folgende ENU Werte: X: " + enu45[0] + " Y: " + enu45[1] + " Z: " +  enu45[2]);
+
+				double[] enu46 = utl.geo_to_enu(lattest4,lontest4, alt);
+				Log.d("ENUTEST", "Folgende ENU Werte: X: " + enu46[0] + " Y: " + enu46[1] + " Z: " +  enu46[2]);
 
 
-				double[] enu43 = utl.geo_to_enu(latubb,lonubb, alt);
-				Log.d("ENU TEST", "Folgende ENU Werte: X: " + enu43[0] + " Y: " + enu43[1] + " Z: " +  enu43[2]);
+
 				//Log.d("GPSLocationFloat", "Folgende ENU Werte: Lat: " + (float)enu4[0] + " Lon: " + (float)enu4[1] + " Alt: " +  (float)enu4[2]);
 
 				//double[] differenceMov = posCalc.giveNewVec(enu43);
